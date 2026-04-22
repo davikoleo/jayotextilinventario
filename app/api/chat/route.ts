@@ -1,21 +1,16 @@
 import { google } from '@ai-sdk/google';
-import { streamText, tool } from 'ai';
+import { generateText, tool } from 'ai';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
-
-// Helper for DB querying inside the AI tools
-async function dbQuery(sqlStr: string) {
-  // Since we are using standard supabase client, raw sql is tricky.
-  // Instead of raw sql, we'll map specific operations so the AI can use them.
-}
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  const result = await streamText({
+  const result = await generateText({
     model: google('models/gemini-1.5-pro-latest') as any,
     system: "Eres un asistente experto en inventarios de una tienda de ropa infantil. Puedes consultar stock, decir qué tallas faltan (stock < 10) y agregar o quitar inventario. Responde siempre de forma corta, amable y directa. El formato de caja es 1 caja = 3 unidades.",
     messages,
+    maxSteps: 5, // Importante para que ejecute las herramientas automáticamente
     tools: {
       get_inventory: tool({
         description: 'Consulta todo el inventario actual para saber cantidades y stock.',
@@ -59,5 +54,5 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toDataStreamResponse();
+  return Response.json({ text: result.text });
 }
