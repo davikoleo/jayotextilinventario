@@ -2,15 +2,18 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useChat } from '@ai-sdk/react';
-import { Mic, Send, Bot, User, X, Loader2, SquareStack } from 'lucide-react';
+import { Mic, Send, Bot, User, X, Loader2 } from 'lucide-react';
 
 export default function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   
-  const { messages, input, setInput, handleInputChange, handleSubmit, isLoading } = useChat({
+  const chatState = useChat({
     api: '/api/chat',
   });
+  
+  const messages = chatState?.messages || [];
+  const { input, setInput, handleInputChange, handleSubmit, isLoading } = chatState || {};
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -99,7 +102,7 @@ export default function AIAssistant() {
               m.role === 'user' ? 'bg-indigo-600 text-white rounded-br-sm' : 'bg-white text-slate-700 border border-slate-100 rounded-bl-sm'
             }`}>
               <div className="font-bold text-xs mb-1 opacity-50 flex items-center gap-1">
-                {m.role === 'user' ? <User className="w-3 h-3" /> : <SquareStack className="w-3 h-3" />}
+                {m.role === 'user' ? <User className="w-3 h-3" /> : <Bot className="w-3 h-3" />}
                 {m.role === 'user' ? 'Tú' : 'IA'}
               </div>
               <div>{m.content}</div>
