@@ -13,6 +13,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = await streamText({
+    // @ts-ignore: Bypass ai SDK version mismatch
     model: google('models/gemini-1.5-pro-latest'),
     system: "Eres un asistente experto en inventarios de una tienda de ropa infantil. Puedes consultar stock, decir qué tallas faltan (stock < 10) y agregar o quitar inventario. Responde siempre de forma corta, amable y directa. El formato de caja es 1 caja = 3 unidades.",
     messages,
