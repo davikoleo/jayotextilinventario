@@ -13,7 +13,7 @@ export default function AIAssistant() {
   });
   
   const messages = chatState?.messages || [];
-  const { input, setInput, handleInputChange, handleSubmit, isLoading } = chatState || {};
+  const { input = '', setInput, handleInputChange, handleSubmit, isLoading = false } = chatState || {};
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
