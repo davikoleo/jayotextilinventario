@@ -7,13 +7,15 @@ import { Mic, Send, Bot, User, X, Loader2 } from 'lucide-react';
 export default function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [myInput, setMyInput] = useState('');
   
   const chatState = useChat({
     api: '/api/chat',
   });
   
   const messages = chatState?.messages || [];
-  const { input = '', setInput, handleInputChange, handleSubmit, isLoading = false } = chatState || {};
+  const isLoading = chatState?.isLoading || false;
+  const append = chatState?.append;
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -43,11 +45,13 @@ export default function AIAssistant() {
     
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
-      setInput(transcript);
+      setMyInput(transcript);
       // Wait a tick for state to update, then submit artificially
       setTimeout(() => {
-        const formEvent = { preventDefault: () => {} } as React.FormEvent<HTMLFormElement>;
-        handleSubmit(formEvent);
+        if (append) {
+          append({ role: 'user', content: transcript });
+          setMyInput('');
+        }
       }, 500);
     };
 
@@ -59,6 +63,13 @@ export default function AIAssistant() {
     recognition.onend = () => setIsListening(false);
 
     recognition.start();
+  };
+
+  const onFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!myInput.trim() || isLoading || !append) return;
+    append({ role: 'user', content: myInput });
+    setMyInput('');
   };
 
   if (!isOpen) {
@@ -88,7 +99,7 @@ export default function AIAssistant() {
 
       {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
-        {messages.length === 0 && (
+        {(messages.length === 0) && (
           <div className="text-center text-slate-400 mt-10">
             <Bot className="w-12 h-12 mx-auto mb-2 opacity-20" />
             <p className="text-sm">¡Hola! Soy tu asistente inteligente.</p>
@@ -96,7 +107,7 @@ export default function AIAssistant() {
           </div>
         )}
         
-        {messages.map((m) => (
+        {messages.map((m: any) => (
           <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[80%] p-3 rounded-2xl text-sm shadow-sm ${
               m.role === 'user' ? 'bg-indigo-600 text-white rounded-br-sm' : 'bg-white text-slate-700 border border-slate-100 rounded-bl-sm'
@@ -121,7 +132,7 @@ export default function AIAssistant() {
       </div>
 
       {/* Input Area */}
-      <form onSubmit={handleSubmit} className="p-3 bg-white border-t border-slate-200 flex gap-2">
+      <form onSubmit={onFormSubmit} className="p-3 bg-white border-t border-slate-200 flex gap-2">
         <button 
           type="button"
           onClick={toggleListening}
@@ -132,14 +143,14 @@ export default function AIAssistant() {
         </button>
         <input
           className="flex-1 border border-slate-200 rounded-full px-4 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 bg-slate-50"
-          value={input}
+          value={myInput}
           placeholder={isListening ? "Escuchando..." : "Escribe o usa el micrófono..."}
-          onChange={handleInputChange}
+          onChange={(e) => setMyInput(e.target.value)}
           disabled={isLoading}
         />
         <button 
           type="submit" 
-          disabled={!input.trim() || isLoading}
+          disabled={!myInput.trim() || isLoading}
           className="bg-indigo-600 text-white p-3 rounded-full hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600 transition shadow-sm"
         >
           <Send className="w-4 h-4" />
