@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { Mic, Send, Bot, User, X, Loader2, SquareStack } from 'lucide-react';
 
 export default function AIAssistant() {
