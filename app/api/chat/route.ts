@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     }
 
     const result = await generateText({
-      model: google('gemini-1.5-flash'),
+      model: google('gemini-2.0-flash'),
       system: "Eres un asistente experto en inventarios de una tienda de ropa infantil. Puedes consultar stock, decir qué tallas faltan (stock < 10) y agregar o quitar inventario. Responde siempre de forma corta, amable y directa. El formato de caja es 1 caja = 3 unidades.",
       messages,
       maxSteps: 5,
@@ -65,7 +65,8 @@ export async function POST(req: Request) {
       },
     });
 
-    return Response.json({ text: result.text });
+    const responseText = result.text?.trim() || "✅ ¡Listo! La operación se completó correctamente.";
+    return Response.json({ text: responseText });
   } catch (error: any) {
     console.error("Error en /api/chat:", error);
     return Response.json(
