@@ -31,16 +31,33 @@ export default function AIAssistant() {
         body: JSON.stringify({ messages: newMessages }),
       });
       
-      const data = await res.json();
-      if (data.text) {
+      let data;
+      try {
+        data = await res.json();
+      } catch (parseError) {
+        throw new Error(`El servidor respondió con un error (Status ${res.status}) y no devolvió JSON.`);
+      }
+
+      if (!res.ok || data.error) {
+        setMessages([...newMessages, { 
+          id: (Date.now() + 1).toString(), 
+          role: 'assistant', 
+          content: `❌ Error: ${data.error || 'Error desconocido del servidor'}` 
+        }]);
+      } else if (data.text) {
         setMessages([...newMessages, { id: (Date.now() + 1).toString(), role: 'assistant', content: data.text }]);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setMessages([...newMessages, { id: (Date.now() + 1).toString(), role: 'assistant', content: "Hubo un error de conexión." }]);
+      setMessages([...newMessages, { 
+        id: (Date.now() + 1).toString(), 
+        role: 'assistant', 
+        content: `⚠️ Hubo un problema: ${err.message || "Error de conexión"}` 
+      }]);
     } finally {
       setIsLoading(false);
     }
+
   };
 
   // Voice Recognition Setup
