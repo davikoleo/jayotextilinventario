@@ -25,10 +25,13 @@ export default function AIAssistant() {
     setIsLoading(true);
 
     try {
+      // Strip `id` before sending — the AI SDK only expects {role, content}
+      const apiMessages = newMessages.map(({ role, content }) => ({ role, content }));
+
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({ messages: apiMessages }),
       });
       
       let data;
@@ -44,8 +47,12 @@ export default function AIAssistant() {
           role: 'assistant', 
           content: `❌ Error: ${data.error || 'Error desconocido del servidor'}` 
         }]);
-      } else if (data.text) {
-        setMessages([...newMessages, { id: (Date.now() + 1).toString(), role: 'assistant', content: data.text }]);
+      } else {
+        setMessages([...newMessages, { 
+          id: (Date.now() + 1).toString(), 
+          role: 'assistant', 
+          content: data.text || '✅ Operación completada.' 
+        }]);
       }
     } catch (err: any) {
       console.error(err);
