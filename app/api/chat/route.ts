@@ -22,7 +22,7 @@ export async function POST(req: Request) {
       messages,
       maxSteps: 5,
       tools: {
-        get_inventory: tool({
+        consultar_inventario: tool({
           description: 'Consulta todo el inventario actual para saber cantidades y stock.',
           parameters: z.object({}),
           execute: async () => {
@@ -31,35 +31,35 @@ export async function POST(req: Request) {
             return data;
           },
         }),
-        add_product: tool({
-          description: 'Agrega mercadería nueva al inventario.',
+        agregar_producto: tool({
+          description: 'Agrega mercadería nueva al inventario. Llama esta herramienta UNA VEZ por cada combinación de modelo+talla.',
           parameters: z.object({
-            modelName: z.string().describe('El nombre del modelo a agregar, ej: "Sirenita", "Boxer Niño Color Entero"'),
-            format: z.string().describe('Debe ser exactamente "cajas" o "unidades"'),
-            size: z.string().describe('La talla del modelo, ej: "4", "6", "8"'),
-            quantity: z.number().describe('La cantidad en formato físico (cuantas cajas o cuantas unidades)'),
+            modelo: z.string().describe('Nombre completo del modelo, ej: "Girasol (B-21)", "Boxer Niño Color Entero"'),
+            formato: z.string().describe('Debe ser exactamente "cajas" o "unidades"'),
+            talla: z.string().describe('La talla, ej: "2", "4", "6", "8", "10", "12", "14", "16"'),
+            cantidad: z.number().describe('Cantidad numérica (cuántas cajas o cuántas unidades)'),
           }),
-          execute: async ({ modelName, format, size, quantity }) => {
+          execute: async ({ modelo, formato, talla, cantidad }) => {
             const { error } = await supabase.from('inventory_items').insert([{
-              model_name: modelName,
-              format: format,
-              size: size,
-              quantity: quantity
+              model_name: modelo,
+              format: formato,
+              size: talla,
+              quantity: cantidad
             }]);
             if (error) return { success: false, error: error.message };
-            return { success: true, message: `Agregado exitosamente: ${quantity} ${format} de ${modelName} talla ${size}` };
+            return { success: true, message: `Agregado: ${cantidad} ${formato} de ${modelo} talla ${talla}` };
           },
         }),
-        delete_product: tool({
+        eliminar_producto: tool({
           description: 'Elimina un producto del inventario mediante su nombre de modelo y talla.',
           parameters: z.object({
-            modelName: z.string(),
-            size: z.string()
+            modelo: z.string().describe('Nombre del modelo a eliminar'),
+            talla: z.string().describe('Talla del producto a eliminar')
           }),
-          execute: async ({ modelName, size }) => {
-            const { error } = await supabase.from('inventory_items').delete().eq('model_name', modelName).eq('size', size);
+          execute: async ({ modelo, talla }) => {
+            const { error } = await supabase.from('inventory_items').delete().eq('model_name', modelo).eq('size', talla);
             if (error) return { success: false, error: error.message };
-            return { success: true, message: `Eliminado correctamente el modelo ${modelName} talla ${size}` };
+            return { success: true, message: `Eliminado correctamente: ${modelo} talla ${talla}` };
           }
         })
       },
