@@ -7,16 +7,16 @@ export async function POST(req: Request) {
     const { messages } = await req.json();
     const result = await generateText({
       model: groq('llama-3.3-70b-versatile'),
-      system: `Eres un asistente de inventario de ropa infantil. 
-- Responde siempre de forma corta y amable.
-- IMPORTANTE: Para agregar productos, usa la herramienta "agregar_producto".
-- Si hay varias tallas, usa la herramienta una vez por cada talla.
-- Formato de caja: 1 caja = 3 unidades.`,
+      system: `Eres un asistente de inventario experto.
+REGLAS:
+1. Para AGREGAR productos: usa "agregar_producto".
+2. Para CONSULTAR: usa "consultar_inventario".
+3. Responde siempre de forma corta y amable en español.`,
       messages,
       maxSteps: 5,
       tools: {
         consultar_inventario: tool({
-          description: 'Mira todo el stock actual.',
+          description: 'Muestra el inventario actual.',
           parameters: z.object({}),
           execute: async () => {
             const { data } = await supabase.from('inventory_items').select('*');
@@ -24,12 +24,12 @@ export async function POST(req: Request) {
           },
         }),
         agregar_producto: tool({
-          description: 'Guarda un producto en la base de datos.',
+          description: 'Agrega un producto al inventario.',
           parameters: z.object({
-            modelo: z.string().describe('Nombre del modelo, ej: "Girasol"'),
-            talla: z.string().describe('Talla, ej: "16"'),
-            formato: z.enum(['cajas', 'unidades']).describe('El formato de empaque'),
-            cantidad: z.number().describe('La cantidad numérica'),
+            modelo: z.string().describe('Nombre del modelo'),
+            talla: z.string().describe('Talla'),
+            formato: z.string().describe('cajas o unidades'),
+            cantidad: z.number().describe('Cantidad'),
           }),
           execute: async ({ modelo, talla, formato, cantidad }) => {
             const { error } = await supabase.from('inventory_items').insert([{
@@ -38,14 +38,16 @@ export async function POST(req: Request) {
               format: formato,
               quantity: cantidad
             }]);
-            if (error) return { error: error.message };
-            return { success: true };
+            return error ? { error: error.message } : { success: true };
           },
         }),
       },
     });
-    return Response.json({ text: result.text || "✅ Operación lista." });
+    // Si la IA no genera texto pero sí ejecutó herramientas, devolvemos un éxito
+    const finalResponse = result.text || "✅ ¡Listo! He procesado tu solicitud.";
+    return Response.json({ text: finalResponse });
   } catch (error: any) {
+    console.error(error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 }
