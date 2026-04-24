@@ -7,32 +7,35 @@ export async function POST(req: Request) {
     const { messages } = await req.json();
     const result = await generateText({
       model: groq('llama-3.3-70b-versatile'),
-      // CAMBIO DE PRUEBA: Si el asistente no dice exactamente esto, Vercel no se ha actualizado.
-      system: `Eres el ASISTENTE NUEVO V3. 
-      Responde siempre empezando con la frase: "CONTROL DE INVENTARIO V3 ACTIVO."
-      REGLAS:
-      - Usa "agregar_producto" para guardar datos.`,
+      system: `Eres el ASISTENTE DE INVENTARIO. Responde corto y en español.
+      REGLA: Usa la herramienta "agregar_producto" para guardar datos.`,
       messages,
       maxSteps: 5,
       tools: {
         agregar_producto: tool({
-          description: 'Agregar producto.',
+          description: 'Guarda un producto. Recibe: modelo, talla, formato, cantidad.',
+          // Aceptamos cualquier propiedad extra para que no dé error de validación
           parameters: z.object({
-            modelo: z.string(),
-            talla: z.string(),
-            formato: z.string(),
-            cantidad: z.number(),
-          }),
-          execute: async ({ modelo, talla, formato, cantidad }) => {
-            await supabase.from('inventory_items').insert([{
-              model_name: modelo, size: talla, format: formato, quantity: cantidad
+            modelo: z.string().optional(),
+            talla: z.string().optional(),
+            formato: z.string().optional(),
+            cantidad: z.number().optional(),
+          }).passthrough(),
+          execute: async (params: any) => {
+            // Buscamos los datos sin importar cómo los llame la IA
+            const m = params.modelo || params.model || "Modelo";
+            const t = String(params.talla || params.size || "Única");
+            const f = params.formato || params.format || "unidades";
+            const c = Number(params.cantidad || params.quantity || 1);
+            const { error } = await supabase.from('inventory_items').insert([{
+              model_name: m, size: t, format: f, quantity: c
             }]);
-            return { success: true };
+            return error ? { error: error.message } : { success: true };
           },
         }),
       },
     });
-    return Response.json({ text: result.text || "✅ Procesado." });
+    return Response.json({ text: result.text || "✅ ¡Inventario actualizado!" });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });
   }
