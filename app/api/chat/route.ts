@@ -15,32 +15,32 @@ export async function POST(req: Request) {
     }
     const result = await generateText({
       model: groq('llama-3.3-70b-versatile'),
-      system: `Eres un asistente de inventario. 1 caja = 3 unidades.
+      system: `Eres un asistente de inventario experto.
 REGLAS:
 - Para agregar: usa "agregar_producto" (modelo, formato, talla, cantidad).
-- Si son varias tallas, llama la herramienta una vez por cada talla.
-- Responde siempre corto y en español.`,
+- Si son varias tallas, llama la herramienta UNA VEZ POR CADA TALLA.
+- Responde siempre corto, amable y en español.`,
       messages,
       maxSteps: 10,
       tools: {
         consultar_inventario: tool({
-          description: 'Consulta el inventario.',
-          parameters: z.object({}).passthrough(),
+          description: 'Consulta el inventario actual.',
+          parameters: z.any(),
           execute: async () => {
             const { data, error } = await supabase.from('inventory_items').select('*');
             return error ? { error: error.message } : data;
           },
         }),
         agregar_producto: tool({
-          description: 'Agrega un producto.',
-          // Usamos un objeto flexible para evitar errores de validación
-          parameters: z.record(z.any()).passthrough(),
+          description: 'Agrega un producto al inventario. Parámetros: modelo, formato, talla, cantidad.',
+          parameters: z.any(),
           execute: async (params: any) => {
-            // Extraemos los valores sin importar cómo los llame la IA
+            // Extraemos los datos de forma flexible
             const modelo = params.modelo || params.model || params.modelName || 'Producto';
             const formato = params.formato || params.format || 'unidades';
-            const talla = String(params.talla || params.size || 'S');
-            const cantidad = Number(params.cantidad || params.quantity || 1);
+            const talla = String(params.talla || params.size || '');
+            const cantidad = Number(params.cantidad || params.quantity || 0);
+            if (!talla || !cantidad) return { error: 'Faltan datos' };
             const { error } = await supabase.from('inventory_items').insert([{
               model_name: modelo,
               format: formato,
@@ -49,12 +49,12 @@ REGLAS:
             }]);
             
             if (error) return { success: false, error: error.message };
-            return { success: true, message: `✅ ${cantidad} ${formato} de ${modelo} (Talla ${talla}) agregados.` };
+            return { success: true, message: `✅ Agregado: ${cantidad} ${formato} de ${modelo} (Talla ${talla})` };
           },
         }),
         eliminar_producto: tool({
           description: 'Elimina un producto.',
-          parameters: z.record(z.any()).passthrough(),
+          parameters: z.any(),
           execute: async (params: any) => {
             const modelo = params.modelo || params.model || '';
             const talla = String(params.talla || params.size || '');
@@ -64,7 +64,7 @@ REGLAS:
         })
       },
     });
-    const responseText = result.text?.trim() || "✅ Operación completada con éxito.";
+    const responseText = result.text?.trim() || "✅ Operación completada.";
     return Response.json({ text: responseText });
   } catch (error: any) {
     console.error(error);
