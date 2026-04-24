@@ -1,4 +1,4 @@
-import { google } from '@ai-sdk/google';
+import { groq } from '@ai-sdk/groq';
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
@@ -7,17 +7,17 @@ export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
 
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
     
-    if (!apiKey || apiKey === 'tu_clave_de_gemini_aqui') {
+    if (!apiKey) {
       return Response.json(
-        { error: "Falta la clave de API de Google (Gemini) en el servidor. Configura GOOGLE_GENERATIVE_AI_API_KEY." },
+        { error: "Falta la clave de API de Groq en el servidor. Configura GROQ_API_KEY en las variables de entorno." },
         { status: 500 }
       );
     }
 
     const result = await generateText({
-      model: google('gemini-2.0-flash'),
+      model: groq('llama-3.3-70b-versatile'),
       system: "Eres un asistente experto en inventarios de una tienda de ropa infantil. Puedes consultar stock, decir qué tallas faltan (stock < 10) y agregar o quitar inventario. Responde siempre de forma corta, amable y directa. El formato de caja es 1 caja = 3 unidades.",
       messages,
       maxSteps: 5,
